@@ -1,35 +1,25 @@
 'use strict';
-
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const mongoose = require('mongoose');
-
 const app = express();
-app.use(cors());
 app.use(express.json());
-
+app.use(cors());
 const PORT = process.env.PORT;
-
-mongoose.connect('mongodb://localhost:27017/books',
+mongoose.connect(process.env.MONGODB_URI,
     { useNewUrlParser: true, useUnifiedTopology: true });
-
-
 const BookSchema = new mongoose.Schema({
     name: String,
     description: String,
     img: String
-
 });
-
 const UserSchema = new mongoose.Schema({
     email: String,
     books: [BookSchema]
 });
-
 const UserModel = mongoose.model('user', UserSchema);
 const BookModel = mongoose.model('book', BookSchema);
-
 function seedBookCollection() {
     const alchemist = new BookModel({
         name: 'The Alchemist',
@@ -46,16 +36,11 @@ function seedBookCollection() {
         description: 'Angels & Demons is a 2000 bestselling mystery-thriller novel written by American author Dan Brown and published by Pocket Books and then by Corgi Books. The novel introduces the character Robert Langdon, who recurs as the protagonist of Browns subsequent novels. ',
         img: 'https://images-na.ssl-images-amazon.com/images/I/61d1QJ0tPhL.jpg'
     });
-
-
-
     alchemist.save();
     immortality.save();
     angelsAndDemons.save();
 }
-
 // seedBookCollection();
-
 function seedUserCollection() {
     const yazan = new UserModel({
         email: 'yazantafesh1@gmail.com',
@@ -67,7 +52,6 @@ function seedUserCollection() {
             }
         ]
     });
-
     const batool = new UserModel({
         email: 'batoolayyad1996@yahoo.com',
         books: [
@@ -83,21 +67,18 @@ function seedUserCollection() {
             }
         ]
     });
-
     yazan.save();
     batool.save();
 }
 // seedUserCollection();
-
 app.get('/', homePageHandler);
 app.get('/books', getBooksHandler);
 app.post('/addBooks', addBooksHandler);
 app.delete('/deleteBook/:index', deleteBooksHandler);
-
+app.put('/updateBook/:index', updateBooksHandler)
 function homePageHandler(req, res) {
     res.send('You are on the homepage')
 }
-
 function getBooksHandler(req,res) {
     let userEmail = req.query.email;
     // let {name} = req.query
@@ -112,12 +93,9 @@ function getBooksHandler(req,res) {
         }
     })
 }
-
 function addBooksHandler(req, res){
-
     const {name, description, img, email} = req.body;
     console.log(name);
-
     UserModel.find({email:email}, (error, userData)=>{
         if(error){
             res.send('did not work')
@@ -132,12 +110,9 @@ function addBooksHandler(req, res){
         }
     })
 }
-
 function deleteBooksHandler(req, res) {
     const {email} = req.query;
-
     const index = Number(req.params.index)
-
     UserModel.find({email:email}, (error, userData)=>{
         const newBookArr = userData[0].books.filter((book,idx)=>{
             if (idx !== index) {
@@ -149,9 +124,19 @@ function deleteBooksHandler(req, res) {
         res.send(userData[0].books);
     })
 }
-
-
-
+function updateBooksHandler (req, res){
+    const {name, description, img, email} = req.body;
+    const index = Number(req.params.index);
+    UserModel.findOne({email:email}, (error, userData)=>{
+    userData.books[index]={
+        name: name,
+        description: description,
+        img: img
+    }
+    userData.save();
+    res.send(userData.books);    
+    })
+}
 app.listen(PORT, () => {
     console.log(`Listening on PORT ${PORT}`)
 })
